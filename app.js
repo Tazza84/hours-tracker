@@ -1040,10 +1040,16 @@ function submitAddBlock() {
 
 // ─── Extra Hours ────────────────────────────────────────────
 function showExtraHours() {
+    const todayStr = app.todayKey();
     createModal('🌙 Extra Hours', `
         <p style="color: #64748b; margin-bottom: 20px; font-size: 0.95rem;">
             Log extra hours worked outside your regular shift (e.g., evening work).
         </p>
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Date:</label>
+            <input type="date" id="extraHoursDate" value="${todayStr}"
+                   style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem;">
+        </div>
         <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 8px; font-weight: 500;">Hours:</label>
             <input type="number" id="extraHoursInput" step="0.1" min="0.1" value="1.0"
@@ -1064,16 +1070,17 @@ function showExtraHours() {
 function submitExtraHours() {
     const hours = parseFloat(document.getElementById('extraHoursInput').value);
     const note = document.getElementById('extraHoursNote').value;
+    const dateVal = document.getElementById('extraHoursDate').value;
     if (isNaN(hours) || hours <= 0) {
         app.showNotification('Enter a valid number of hours');
         return;
     }
     const fullNote = note ? `🌙 ${note}` : '🌙 Extra hours';
-    app.addSession(hours, 'extra', fullNote);
+    app.addSession(hours, 'extra', fullNote, dateVal);
     app.recalcBanked();
     app.updateAllUI();
     closeModal();
-    app.showNotification(`Added ${hours.toFixed(1)}h extra hours`);
+    app.showNotification(`Added ${hours.toFixed(1)}h extra hours for ${dateVal}`);
 }
 
 // ─── History View ───────────────────────────────────────────
