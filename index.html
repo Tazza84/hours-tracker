@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hours Tracker</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#f0f4f8">
+    <meta name="description" content="Track your work hours with overtime banking">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%236c5ce7'/><circle cx='50' cy='50' r='35' fill='none' stroke='white' stroke-width='4'/><line x1='50' y1='25' x2='50' y2='50' stroke='white' stroke-width='3'/><line x1='50' y1='50' x2='65' y2='50' stroke='white' stroke-width='3'/></svg>">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Soft Pastel Color Palette */
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-card: rgba(255, 255, 255, 0.8);
+            --bg-gradient-green: linear-gradient(135deg, #67e8f9 0%, #84cc16 100%);
+            --bg-gradient-blue: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --bg-gradient-purple: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            --bg-gradient-coral: linear-gradient(135deg, #f97316 0%, #f59e0b 100%);
+            --bg-gradient-mint: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            
+            /* Text Colors */
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-light: #94a3b8;
+            --text-white: #ffffff;
+            
+            /* Status Colors */
+            --status-ahead: #22c55e;
+            --status-behind: #ef4444;
+            --status-neutral: #6b7280;
+            
+            /* Spacing & Sizing */
+            --border-radius: 24px;
+            --border-radius-lg: 32px;
+            --spacing-xs: 8px;
+            --spacing-sm: 12px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            
+            /* Typography */
+            --font-display: 'Comfortaa', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            
+            /* Shadows */
+            --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.12);
+            --shadow-button: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        .app-container {
+            min-height: 100vh;
+            padding: var(--spacing-lg) var(--spacing-md);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .app-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .settings-btn {
+            background: var(--bg-card);
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-soft);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .settings-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-card);
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-lg);
+            box-shadow: var(--shadow-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .hero-card {
+            background: var(--bg-gradient-green);
+            color: var(--text-white);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.5; }
+            50% { transform: scale(1.1) rotate(180deg); opacity: 0.8; }
+        }
+        
+        .weekly-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: var(--spacing-md);
+            opacity: 0.9;
+        }
+        
+        .progress-ring {
+            width: 120px;
+            height: 120px;
+            margin: var(--spacing-md) auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .progress-ring svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.2);
+            stroke-width: 8;
+        }
+        
+        .progress-ring-fill {
+            fill: none;
+            stroke: white;
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-dasharray: 283;
+            stroke-dashoffset: 113;
+            transition: stroke-dashoffset 1s ease;
+        }
+        
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1;
+        }
+        
+        .hours-ahead {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: var(--font-display);
+        }
+        
+        .ahead-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .banked-hours {
+            margin-top: var(--spacing-md);
+            font-size: 1.1rem;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        
+        .today-card {
+            position: relative;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .menu-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: var(--spacing-xs);
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+        
+        .menu-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-primary);
+        }
+        
+        .today-progress {
+            text-align: center;
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .today-hours {
+            font-size: 1.8rem;
+            font-weight: 700;
+            font-family: var(--font-display);
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .timer-controls {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            border: none;
+            border-radius: 50px;
+            padding: var(--spacing-md) var(--spacing-xl);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            transform: translate(-50%, -50%);
+        }
+        
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn-primary {
+            background: var(--bg-gradient-blue);
+            color: white;
+            box-shadow: var(--shadow-button);
+            padding: var(--spacing-md) 2rem;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-gradient-purple);
+            color: white;
+            box-shadow: var(--shadow-button);
+        }
+        
+        .btn-danger {
+            background: var(--bg-gradient-coral);
+            color: white;
+            box-shadow: var(--shadow-button);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .secondary-controls {
+            display: flex;
+            gap: var(--spacing-sm);
+            justify-content: center;
+        }
+        
+        .btn-outline {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--bg-gradient-mint);
+            color: var(--text-primary);
+            padding: var(--spacing-sm) var(--spacing-lg);
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+        
+        .action-card {
+            background: var(--bg-card);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--bg-gradient-mint);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .action-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .action-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-card);
+        }
+        
+        .action-icon {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .action-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .action-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .hidden {
+            display: none;
+        }
+
+        /* Modal Styles */
+        .modal-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #f8fafc;
+            color: #334155;
+            font-size: 0.95rem;
+        }
+        .modal-btn:hover {
+            background: #e2e8f0;
+            transform: translateY(-1px);
+        }
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+            color: white !important;
+        }
+        .modal-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .app-container {
+                padding: var(--spacing-md) var(--spacing-sm);
+            }
+            
+            .timer-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .btn-primary {
+                padding: var(--spacing-lg) var(--spacing-xl);
+            }
+        }
+        
+        /* Loading Animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="app-title">Hours Tracker</h1>
+            <button class="settings-btn" onclick="showSettings()">
+                ⚙️
+            </button>
+        </header>
+
+        <!-- Weekly Balance Hero Card -->
+        <div class="card hero-card">
+            <div class="weekly-title">This Week</div>
+            <div class="progress-ring">
+                <svg>
+                    <circle class="progress-ring-bg" cx="60" cy="60" r="45"></circle>
+                    <circle class="progress-ring-fill" cx="60" cy="60" r="45"></circle>
+                </svg>
+                <div class="progress-text">
+                    <div class="hours-ahead">+0.0</div>
+                    <div class="ahead-label">hours ahead</div>
+                </div>
+            </div>
+            <div class="banked-hours">💰 0.0 hours banked</div>
+        </div>
+
+        <!-- Today's Progress Card -->
+        <div class="card today-card">
+            <div class="card-header">
+                <h2 class="card-title">Today</h2>
+                <button class="menu-btn" onclick="showTodayMenu()">⋯</button>
+            </div>
+            
+            <div class="today-progress">
+                <div class="progress-ring">
+                    <svg>
+                        <circle class="progress-ring-bg" cx="60" cy="60" r="45"></circle>
+                        <circle class="progress-ring-fill" cx="60" cy="60" r="45" style="stroke: #3b82f6;"></circle>
+                    </svg>
+                    <div class="progress-text">
+                        <div class="today-hours">0.0/7.6</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="timer-controls">
+                <button class="btn btn-primary" id="startTimer">START TIMER</button>
+                <button class="btn btn-secondary hidden" id="pauseTimer">PAUSE</button>
+                <button class="btn btn-danger hidden" id="stopTimer">STOP</button>
+            </div>
+
+            <div id="startedEarlierLink" style="text-align: center; margin-bottom: 12px;">
+                <button onclick="showStartedEarlier()" style="background: none; border: none; color: #6366f1; font-size: 0.9rem; font-weight: 500; cursor: pointer; padding: 4px 8px;">
+                    ⏪ Started earlier? Tap here
+                </button>
+            </div>
+
+            <div class="secondary-controls">
+                <button class="btn btn-outline" id="lunchBtn">🍽️ LUNCH</button>
+                <button class="btn btn-outline" id="addBlockBtn">+ Log Hours</button>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <div class="action-card" onclick="showBankedTime()">
+                <div class="action-icon">💰</div>
+                <div class="action-title">Use Banked Time</div>
+                <div class="action-subtitle" id="bankedSubtitle">0.0 hrs available</div>
+            </div>
+
+            <div class="action-card" onclick="showHistory()">
+                <div class="action-icon">📊</div>
+                <div class="action-title">This Week</div>
+                <div class="action-subtitle" id="weekSubtitle">View breakdown</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
