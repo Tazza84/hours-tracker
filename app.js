@@ -17,16 +17,24 @@ class HoursTracker {
     }
 
     // ─── Helpers ────────────────────────────────────────────
+    // Format a date as "YYYY-MM-DD" in local time (avoids UTC timezone shift)
+    dateToLocalKey(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
     todayKey() {
-        return new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+        return this.dateToLocalKey(new Date());
     }
 
     weekStartKey(date = new Date()) {
         const d = new Date(date);
         const day = d.getDay(); // 0=Sun
         const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Mon start
-        const mon = new Date(d.setDate(diff));
-        return mon.toISOString().split('T')[0];
+        d.setDate(diff);
+        return this.dateToLocalKey(d);
     }
 
     weekDates(weekStart) {
@@ -35,7 +43,7 @@ class HoursTracker {
         for (let i = 0; i < 5; i++) {
             const day = new Date(d);
             day.setDate(d.getDate() + i);
-            dates.push(day.toISOString().split('T')[0]);
+            dates.push(this.dateToLocalKey(day));
         }
         return dates;
     }
