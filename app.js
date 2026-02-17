@@ -220,6 +220,7 @@ class HoursTracker {
         document.getElementById('stopTimer').addEventListener('click', () => this.stopTimer());
         document.getElementById('lunchBtn').addEventListener('click', () => this.startLunch());
         document.getElementById('addBlockBtn').addEventListener('click', () => showAddBlock());
+        document.getElementById('extraHoursBtn').addEventListener('click', () => showExtraHours());
     }
 
     // ─── Timer ──────────────────────────────────────────────
@@ -1029,6 +1030,44 @@ function submitAddBlock() {
     app.showNotification(`Added ${hours.toFixed(1)}h block`);
 }
 
+// ─── Extra Hours ────────────────────────────────────────────
+function showExtraHours() {
+    createModal('🌙 Extra Hours', `
+        <p style="color: #64748b; margin-bottom: 20px; font-size: 0.95rem;">
+            Log extra hours worked outside your regular shift (e.g., evening work).
+        </p>
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Hours:</label>
+            <input type="number" id="extraHoursInput" step="0.1" min="0.1" value="1.0"
+                   style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem;">
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Note (optional):</label>
+            <input type="text" id="extraHoursNote" placeholder="e.g., Evening client work"
+                   style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem;">
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <button class="modal-btn" onclick="closeModal()" style="flex: 1; background: #f1f5f9;">Cancel</button>
+            <button class="modal-btn modal-btn-primary" onclick="submitExtraHours()" style="flex: 1;">Add Extra Hours</button>
+        </div>
+    `);
+}
+
+function submitExtraHours() {
+    const hours = parseFloat(document.getElementById('extraHoursInput').value);
+    const note = document.getElementById('extraHoursNote').value;
+    if (isNaN(hours) || hours <= 0) {
+        app.showNotification('Enter a valid number of hours');
+        return;
+    }
+    const fullNote = note ? `🌙 ${note}` : '🌙 Extra hours';
+    app.addSession(hours, 'extra', fullNote);
+    app.recalcBanked();
+    app.updateAllUI();
+    closeModal();
+    app.showNotification(`Added ${hours.toFixed(1)}h extra hours`);
+}
+
 // ─── History View ───────────────────────────────────────────
 function showHistory() {
     const ws = app.weekStartKey();
@@ -1181,7 +1220,7 @@ function showTodayMenu() {
     if (todaySessions.length > 0) {
         sessionList = todaySessions.map((s, i) => {
             const time = new Date(s.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const icon = s.type === 'manual' ? '✏️' : '⏱️';
+            const icon = s.type === 'extra' ? '🌙' : s.type === 'manual' ? '✏️' : '⏱️';
             return `<div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem;">
                 <span>${icon} ${time}${s.note ? ' — ' + s.note : ''}</span>
                 <span>${s.duration.toFixed(1)}h</span>
