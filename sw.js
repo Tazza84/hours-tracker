@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hours-tracker-v2';
+const CACHE_NAME = 'hours-tracker-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -19,34 +19,26 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Fetch Service Worker
+// Fetch Service Worker — network-first for app files, cache fallback for offline
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then((response) => {
-        // Return cached version or fetch from network
-        if (response) {
-          return response;
+        // Got a fresh response — cache it for offline use
+        if (response && response.status === 200) {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
         }
-        return fetch(event.request)
+        return response;
+      })
+      .catch(() => {
+        // Network failed — fall back to cache (offline support)
+        return caches.match(event.request)
           .then((response) => {
-            // Don't cache non-successful responses
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clone the response
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          })
-          .catch(() => {
-            // Return a custom offline page if available
+            if (response) return response;
             if (event.request.mode === 'navigate') {
               return caches.match('/index.html');
             }
