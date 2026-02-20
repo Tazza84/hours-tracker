@@ -1113,9 +1113,9 @@ function showHistory() {
         }
 
         rows += `
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
+            <div onclick="showDayDetail('${d}')" style="display: flex; justify-content: space-between; padding: 10px 8px; border-bottom: 1px solid #f1f5f9; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseenter="this.style.background='#f8fafc'" onmouseleave="this.style.background=''">
                 <span>${app.formatDate(d)}${isCurrent ? ' (today)' : ''}</span>
-                <span style="color: ${colour};">${icon} ${liveTotal > 0 ? liveTotal.toFixed(1) + 'h' : '—'} ${liveTotal > 0 ? '(' + diffStr + ')' : ''}</span>
+                <span style="color: ${colour}; display: flex; align-items: center; gap: 4px;">${icon} ${liveTotal > 0 ? liveTotal.toFixed(1) + 'h' : '—'} ${liveTotal > 0 ? '(' + diffStr + ')' : ''} <span style="color: #cbd5e1; font-size: 0.8rem;">›</span></span>
             </div>`;
     }
 
@@ -1148,6 +1148,184 @@ function showHistory() {
             </div>
         </div>` : ''}
     `);
+}
+
+// ─── Day Detail View (Edit Sessions) ────────────────────────
+function showDayDetail(dateKey) {
+    const sessions = app.getSessions();
+    const daySessions = sessions[dateKey] || [];
+    const dayTotal = daySessions.reduce((sum, s) => sum + s.duration, 0);
+    const isCurrent = dateKey === app.todayKey();
+    const liveTotal = isCurrent ? dayTotal + app.currentSessionHours() : dayTotal;
+
+    let sessionList = '';
+    if (daySessions.length > 0) {
+        sessionList = daySessions.map((s, i) => {
+            const time = new Date(s.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const icon = s.type === 'extra' ? '🌙' : s.type === 'manual' ? '✏️' : '⏱️';
+            return `<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                <div style="flex: 1;">
+                    <div style="font-size: 0.95rem;">${icon} ${time}${s.note ? ' — ' + s.note : ''}</div>
+                    <div style="font-size: 0.8rem; color: #94a3b8;">${s.type || 'timer'} session</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 600; font-size: 0.95rem;">${s.duration.toFixed(1)}h</span>
+                    <button onclick="editSession('${dateKey}', ${i})" style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 4px;" title="Edit">✏️</button>
+                    <button onclick="deleteSession('${dateKey}', ${i})" style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 4px;" title="Delete">🗑️</button>
+                </div>
+            </div>`;
+        }).join('');
+    } else {
+        sessionList = '<div style="color: #94a3b8; font-size: 0.9rem; padding: 16px 0;">No sessions logged for this day</div>';
+    }
+
+    const dayName = app.formatDate(dateKey);
+    const diff = liveTotal - app.targetHours;
+    const diffStr = diff >= 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1);
+
+    createModal(`${dayName}${isCurrent ? ' (today)' : ''}`, `
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 2rem; font-weight: 700; color: ${liveTotal >= app.targetHours ? '#22c55e' : '#3b82f6'};">${liveTotal.toFixed(1)}h</div>
+            <div style="font-size: 0.9rem; color: #64748b;">Target: ${app.targetHours}h (${diffStr})</div>
+        </div>
+        <div style="margin-bottom: 16px;">
+            <h3 style="font-size: 1rem; margin-bottom: 12px;">Sessions</h3>
+            ${sessionList}
+        </div>
+        <div style="display: flex; gap: 12px; margin-top: 16px;">
+            <button class="modal-btn" onclick="showHistory()" style="flex: 1; background: #f1f5f9;">← Back</button>
+            <button class="modal-btn modal-btn-primary" onclick="addHoursForDay('${dateKey}')" style="flex: 1;">+ Add Hours</button>
+        </div>
+    `);
+}
+
+function editSession(dateKey, index) {
+    const sessions = app.getSessions();
+    const session = sessions[dateKey][index];
+
+    closeModal();
+    createModal('Edit Session', `
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Hours:</label>
+            <input type="number" id="editSessionHours" step="0.1" min="0.1" value="${session.duration.toFixed(1)}"
+                   style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem;">
+        </div>
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Type:</label>
+            <select id="editSessionType" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem;">
+                <option value="timer" ${session.type === 'timer' ? 'selected' : ''}>⏱️ Timer</option>
+                <option value="manual" ${session.type === 'manual' ? 'selected' : ''}>✏️ Manual</option>
+                <option value="extra" ${session.type === 'extra' ? 'selected' : ''}>🌙 Extra</option>
+            </select>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Note:</label>
+            <input type="text" id="editSessionNote" value="${session.note || ''}"
+                   style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem;">
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <button class="modal-btn" onclick="showDayDetail('${dateKey}')" style="flex: 1; background: #f1f5f9;">Cancel</button>
+            <button class="modal-btn modal-btn-primary" onclick="submitEditSession('${dateKey}', ${index})" style="flex: 1;">Save</button>
+        </div>
+    `);
+}
+
+function submitEditSession(dateKey, index) {
+    const hours = parseFloat(document.getElementById('editSessionHours').value);
+    const type = document.getElementById('editSessionType').value;
+    const note = document.getElementById('editSessionNote').value;
+
+    if (isNaN(hours) || hours <= 0) {
+        app.showNotification('Enter a valid number of hours');
+        return;
+    }
+
+    const sessions = app.getSessions();
+    sessions[dateKey][index].duration = hours;
+    sessions[dateKey][index].type = type;
+    sessions[dateKey][index].note = note;
+    app.saveSessions(sessions);
+    app.recalcBanked();
+    app.updateAllUI();
+    app.showNotification('Session updated');
+    showDayDetail(dateKey);
+}
+
+function deleteSession(dateKey, index) {
+    closeModal();
+    const sessions = app.getSessions();
+    const session = sessions[dateKey][index];
+    const icon = session.type === 'extra' ? '🌙' : session.type === 'manual' ? '✏️' : '⏱️';
+
+    createModal('Delete Session?', `
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 1.2rem; margin-bottom: 8px;">${icon} ${session.duration.toFixed(1)}h</div>
+            <div style="color: #64748b; font-size: 0.9rem;">${session.note || 'No note'}</div>
+        </div>
+        <p style="color: #64748b; margin-bottom: 24px; text-align: center;">This will permanently remove this session.</p>
+        <div style="display: flex; gap: 12px;">
+            <button class="modal-btn" onclick="showDayDetail('${dateKey}')" style="flex: 1; background: #f1f5f9;">Cancel</button>
+            <button class="modal-btn" onclick="confirmDeleteSession('${dateKey}', ${index})" style="flex: 1; background: #ef4444; color: white;">Delete</button>
+        </div>
+    `);
+}
+
+function confirmDeleteSession(dateKey, index) {
+    const sessions = app.getSessions();
+    sessions[dateKey].splice(index, 1);
+    if (sessions[dateKey].length === 0) {
+        delete sessions[dateKey];
+    }
+    app.saveSessions(sessions);
+    app.recalcBanked();
+    app.updateAllUI();
+    app.showNotification('Session deleted');
+    showDayDetail(dateKey);
+}
+
+function addHoursForDay(dateKey) {
+    closeModal();
+    createModal('Add Hours — ' + app.formatDate(dateKey), `
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Hours:</label>
+            <input type="number" id="addDayHours" step="0.1" min="0.1" value="1.0"
+                   style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem;">
+        </div>
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Type:</label>
+            <select id="addDayType" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem;">
+                <option value="manual">✏️ Manual</option>
+                <option value="extra">🌙 Extra</option>
+            </select>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Note (optional):</label>
+            <input type="text" id="addDayNote" placeholder="e.g., Morning meeting"
+                   style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem;">
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <button class="modal-btn" onclick="showDayDetail('${dateKey}')" style="flex: 1; background: #f1f5f9;">Cancel</button>
+            <button class="modal-btn modal-btn-primary" onclick="submitAddDayHours('${dateKey}')" style="flex: 1;">Add</button>
+        </div>
+    `);
+}
+
+function submitAddDayHours(dateKey) {
+    const hours = parseFloat(document.getElementById('addDayHours').value);
+    const type = document.getElementById('addDayType').value;
+    const note = document.getElementById('addDayNote').value;
+
+    if (isNaN(hours) || hours <= 0) {
+        app.showNotification('Enter a valid number of hours');
+        return;
+    }
+
+    const fullNote = type === 'extra' ? (note ? `🌙 ${note}` : '🌙 Extra hours') : note;
+    app.addSession(hours, type, fullNote, dateKey);
+    app.recalcBanked();
+    app.updateAllUI();
+    app.showNotification(`Added ${hours.toFixed(1)}h for ${app.formatDate(dateKey)}`);
+    showDayDetail(dateKey);
 }
 
 // ─── Settings ───────────────────────────────────────────────
