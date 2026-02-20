@@ -197,8 +197,8 @@ class HoursTracker {
         const state = this.getTimerState();
         if (!state) return;
 
-        // Only restore if it was saved today
-        const savedDate = new Date(state.savedAt).toISOString().split('T')[0];
+        // Only restore if it was saved today (use local time, not UTC)
+        const savedDate = this.dateToLocalKey(new Date(state.savedAt));
         if (savedDate !== this.todayKey()) {
             localStorage.removeItem('hoursTimerState');
             return;
